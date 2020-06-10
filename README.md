@@ -1,7 +1,7 @@
-# SauceFinder
-*This started as a joke but somehow actually turned into something legit*
+# SauceFinder Alt
+*I didn't realize there actually was an api*
 
-This program will accept your 6 digit number(s) and generate a preview corresponding to the respective gallery number of a certain website that begins with the letter 'n'
+This is a alternate version of Saucefinder that uses the api instead of scraping. Everything else remains the same
 
 
 ### TODO
@@ -19,10 +19,10 @@ This program will accept your 6 digit number(s) and generate a preview correspon
 
 ### Installation
 In case you are braindead:
-1. `git clone https://github.com/zhang-chenfeng/SauceFinder.git saucefinder`
-2. `cd saucefinder (activate your venv)`
+1. `git clone https://github.com/zhang-chenfeng/SauceFinder-alt.git saucefinder-alt`
+2. `cd saucefinder-alt (activate your venv)`
 3. `python -m pip install -r requirements.txt`
-4. `python sauce.py`
+4. `python sauce_new.py`
 
 ### Usage
 
