@@ -1,5 +1,5 @@
 # SauceFinder Alt
-*I didn't realise there actaully was an api*
+*I didn't realise there actually was an api*
 
 This is a alternate version of Saucefinder that uses the api instead of scraping. Everything else remains the same
 
