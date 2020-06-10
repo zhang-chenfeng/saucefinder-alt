@@ -379,7 +379,7 @@ class SauceFinder(tk.Frame):
         """
         for downloading images- the viewer also uses this
         """
-        url = f"https://i.nhentai.net/galleries/{self.sauce_data['gallery']}/{num}.{self.encode[self.sauce_data['endings'][num - 1]]}"
+        url = f"https://i.nhentai.net/galleries/{self.sauce_data['gallery']}/{num}.{self.sauce_data['endings'][num - 1]}"
         print(url)
         try:
             response = get(url, timeout=5)
