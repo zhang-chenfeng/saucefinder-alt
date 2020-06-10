@@ -19,8 +19,8 @@ This is a alternate version of Saucefinder that uses the api instead of scraping
 
 ### Installation
 In case you are braindead:
-1. `git clone https://github.com/zhang-chenfeng/SauceFinder-alt.git saucefinder`
-2. `cd saucefinder_2 (activate your venv)`
+1. `git clone https://github.com/zhang-chenfeng/SauceFinder-alt.git saucefinder-alt`
+2. `cd saucefinder-alt (activate your venv)`
 3. `python -m pip install -r requirements.txt`
 4. `python sauce_new.py`
 
