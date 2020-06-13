@@ -254,6 +254,7 @@ class SauceFinder(tk.Frame):
         data['gallery'] = r['media_id']
         data['title'] = r['title']['english']
         data['subtitle'] = r['title']['japanese']
+        data['pages'] = r['num_pages']
 
         img = r['images']
         c = {'j': 'jpg', 'p': 'png'}
@@ -261,8 +262,7 @@ class SauceFinder(tk.Frame):
         data['endings'] = [c[a['t']] for a in img['pages']]
         cover_end = c[img['cover']['t']]
 
-        data['pages'] = r['num_pages']
-        
+        # get all the tags together
         fields = {}
         data['fields'] = []
         for tag in r['tags']:
@@ -285,6 +285,7 @@ class SauceFinder(tk.Frame):
         
         data['fields'].append(("Pages", [str(data['pages'])]))
         
+        # get cover
         response = get(f"https://t.nhentai.net/galleries/{data['gallery']}/cover.{cover_end}")
         load = Image.open(BytesIO(response.content))
         w, h = load.size
