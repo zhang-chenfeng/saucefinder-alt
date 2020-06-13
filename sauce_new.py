@@ -257,6 +257,7 @@ class SauceFinder(tk.Frame):
 
         img = r['images']
         c = {'j': 'jpg', 'p': 'png'}
+        # image encodings
         data['endings'] = [c[a['t']] for a in img['pages']]
         cover_end = c[img['cover']['t']]
 
@@ -270,10 +271,13 @@ class SauceFinder(tk.Frame):
                 fields[type].append((name, count))
             except KeyError:
                 fields[type] = [(name, count)]
+        
+        # sort by highest tag count
         for cat in fields:
             fields[cat] = sorted(fields[cat], key=lambda a: a[1], reverse=True)
         
-        for index, (key, con) in enumerate([c.split(":") for c in "parody:Parodies character:Characters tag:Tags artist:Artists group:Groups language:Languages category:Categories".split()]):
+        # put the fields in right order
+        for key, con in [c.split(":") for c in "parody:Parodies character:Characters tag:Tags artist:Artists group:Groups language:Languages category:Categories".split()]:
             try:
                 data['fields'].append((con, [a[0] for a in fields[key]]))
             except KeyError:
