@@ -624,8 +624,7 @@ class Scroll(tk.Frame):
         """
         handle mouse scrolling
         """
-        if event.state == 0:
-            self.screen.yview_scroll(int(-1 * (event.delta / 120)), 'units')
+        self.screen.yview_scroll(int(-1 * (event.delta / 120)), 'units')
 
 
 # class for the settings tab. Im thinking to just integrate this into the base UI(no popup)
