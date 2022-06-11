@@ -250,14 +250,14 @@ class SauceFinder(tk.Frame):
             return
         
         r = response.json()
-        
+        print(r)
         data['gallery'] = r['media_id']
         data['title'] = r['title']['english']
         data['subtitle'] = r['title']['japanese']
         data['pages'] = r['num_pages']
 
         img = r['images']
-        c = {'j': 'jpg', 'p': 'png'}
+        c = {'j': 'jpg', 'p': 'png', 'g': 'gif'}
         # image encodings
         data['endings'] = [c[a['t']] for a in img['pages']]
         cover_end = c[img['cover']['t']]
@@ -291,7 +291,7 @@ class SauceFinder(tk.Frame):
         w, h = load.size
         w, h = load.size
         if w > 350: # scale the cover if too big
-            load = load.resize((350, 350 * h // w), Image.ANTIALIAS)
+            load = load.resize((350, 350 * h // w), Image.LANCZOS)
         data['cover'] = ImageTk.PhotoImage(load)
         
         self.memory.clear()
@@ -358,9 +358,12 @@ class SauceFinder(tk.Frame):
         page, total = self.d_page, self.sauce_data['pages']
         image = self.memory[page]
 
-        img_path = "{}/{}.{}".format(self.loc, self.d_page, {"JPEG": "jpg", "PNG": "png"}[image.format])
+        img_path = "{}/{}.{}".format(self.loc, self.d_page, {"JPEG": "jpg", "PNG": "png", "GIF": "gif"}[image.format])
         if not os.path.exists(img_path): # won't overwrite
-            image.save(img_path)
+            if(image.format == "GIF"):
+                image.save(img_path, save_all=True)
+            else:
+                image.save(img_path)
             print(f"{page} saved")
         self.down_l['text'] = f"{page}/{total}"
         self.bar['width'] = 150 * page // total
@@ -446,6 +449,8 @@ class Viewer(tk.Toplevel):
         self.pressed = False
         self.loading = 0
         self.q = queue.Queue()
+        self.multiplier = {-6: 1/4, -5: 1/3, -4: 1/2, -3: 1/1.75, -2: 1/1.5, -1: 1/1.25, 0: 1, 1: 1.25, 2: 1.5, 3: 1.75, 4: 2, 5: 3, 6: 4}
+        self.speed = 0
 
         self.UI()
         self.loadPage()
@@ -458,14 +463,18 @@ class Viewer(tk.Toplevel):
         self.focus() # give keyboard focus to the toplevel object(for key bindings)
         # create selected view mode
         self.viewframe = {'scaled': Scale, 'scrolled': Scroll}[self.base.viewmode](self) # this seems pretty jank
-        self.viewframe.pack(padx=self.xpad, pady=self.ypad)
+        self.info = tk.Label(self, text = "")
+        self.viewframe.grid(column = 0, row = 0, padx=self.xpad, pady=(5, 0))
+        self.info.grid(column = 0, row = 1, padx=self.xpad, pady=(1, 5), sticky="W")
         
-        self.bind('<Left>', lambda event: self.left())
-        self.bind('<Right>', lambda event: self.right())
+        self.bind('<Left>', self.left)
+        self.bind('<Right>', self.right)
         # restrict 1 action per key press- change page functionality is disabled until key is released
         self.bind('<KeyRelease-Left>', self.resetPress) # it just feels more right this way
         self.bind('<KeyRelease-Right>', self.resetPress)
         self.bind("<Button-1>", self.click)
+        self.bind("q", self.sp_dn)
+        self.bind("e", self.sp_up)
 
 
     def loadPage(self):
@@ -481,9 +490,10 @@ class Viewer(tk.Toplevel):
 
     def renderPage(self):
         # display the image to the screen and starts the background loading of the next image- if needed
-        self.viewframe.render(self.base.memory[self.curr_page])
+        self.viewframe.render(self.curr_page)
         self.title(f"{self.base.sauce_data['number']}- page {self.curr_page} of {self.base.sauce_data['pages']}")
-        
+        self.info.config(text = "")
+
         if self.base.loading:
             print("saving...")
         else:
@@ -537,14 +547,22 @@ class Viewer(tk.Toplevel):
         if not self.pressed:
             self.pressed = True
             self.nextPage() 
-    
 
     def resetPress(self, event=None):
         """
         prevent rapid calling by holding down left/right key
         """
         self.pressed = False
+        
+    def sp_up(self, event=None):
+        if self.base.sauce_data['endings'][self.curr_page - 1] == "gif":
+            self.speed += self.speed < 6
+            self.info.config(text = f"Speed: {self.multiplier[self.speed]:.2f}")
 
+    def sp_dn(self, event=None):
+        if self.base.sauce_data['endings'][self.curr_page - 1] == "gif":
+            self.speed -= self.speed > -6
+            self.info.config(text = f"Speed: {self.multiplier[self.speed]:.2f}")
 
 
 class Scale(tk.Frame):
@@ -564,22 +582,53 @@ class Scale(tk.Frame):
 
         self.img_l = tk.Label(self)
         self.img_l.grid()
+        
+        self.page = 0;
+        self.frame = [[] for x in range(base.base.sauce_data['pages'])]
+        self.delay = [60 for x in range(base.base.sauce_data['pages'])]
+        self.pn = 0
+        self.sch = None
     
-    
-    def render(self, image):
+    def render(self, page):
         """
         called to change the displayed image
         """
+        image = self.base.base.memory[page]
         img_w, img_h = image.size
         max_h = self.scaled_height
         display_width = int(max_h * img_w / img_h)
         if display_width > self.display_width:
             display_width = self.display_width
             max_h = int(display_width * img_h / img_w)
-            
-        self.img_display = ImageTk.PhotoImage(image.resize((display_width, max_h), Image.ANTIALIAS))
-        self.img_l['image'] = self.img_display
 
+        self.page = page - 1
+        v = 1
+        if not self.frame[self.page]:
+            while(1):
+                try:
+                    ii = image.copy()
+                    if img_w > self.display_width:
+                        ii = ii.resize((display_width, max_h), Image.LANCZOS)
+                    self.frame[self.page].append(ImageTk.PhotoImage(ii))
+                    image.seek(v)
+                    v+=1
+                except EOFError:
+                    break
+
+        if(self.sch):
+            self.after_cancel(self.sch)
+        self.pn = 0
+
+        if len(self.frame[self.page]) == 1:
+            self.img_l['image'] = self.frame[self.page][0]
+        else:
+            self.delay[self.page] = image.info['duration']
+            self.frame_advance()
+
+    def frame_advance(self):
+        self.img_l['image'] = self.frame[self.page][self.pn]
+        self.pn = (self.pn + 1) % len(self.frame[self.page])
+        self.sch = self.after(int(self.delay[self.page] / self.base.multiplier[self.base.speed]), self.frame_advance)
 
 
 class Scroll(tk.Frame):
@@ -588,7 +637,8 @@ class Scroll(tk.Frame):
     """
     def __init__(self, base):
         tk.Frame.__init__(self, base)
-        
+        self.base = base
+
         self.display_width = base.img_w
         win_w = self.display_width + sum(base.xpad)
         screen_height = base.win_h - sum(base.ypad)
@@ -607,19 +657,50 @@ class Scroll(tk.Frame):
         base.bind("<Up>", lambda event: self.screen.yview_scroll(-1, "units"))
         base.bind("<Down>", lambda event: self.screen.yview_scroll( 1, "units"))
 
+        
+        self.page = 0;
+        self.frame = [[] for x in range(base.base.sauce_data['pages'])]
+        self.delay = [60 for x in range(base.base.sauce_data['pages'])]
+        self.pn = 0
+        self.sch = None
 
-    def render(self, image):
+
+    def render(self, page):
+        image = self.base.base.memory[page]
         img_w, img_h = image.size
-        if img_w > self.display_width:
-            image = image.resize((self.display_width, int(self.display_width * img_h / img_w)), Image.ANTIALIAS)
         
-        self.img_display = ImageTk.PhotoImage(image)
-        self.screen.delete('all')
-        self.screen.create_image(0, 0, image=self.img_display, anchor='nw')
-        self.screen.configure(scrollregion=self.screen.bbox('all'))
+        self.page = page - 1
+        v = 1
+        if not self.frame[self.page]:
+            while(1):
+                try:
+                    ii = image.copy()
+                    if img_w > self.display_width:
+                        ii = ii.resize((self.display_width, int(self.display_width * img_h / img_w)), Image.LANCZOS)
+                    self.frame[self.page].append(ImageTk.PhotoImage(ii))
+                    image.seek(v)
+                    v+=1
+                except EOFError:
+                    break
+        if(self.sch):
+            self.after_cancel(self.sch)
+        self.pn = 0
         self.screen.yview_moveto(0)
-        
-        
+        if len(self.frame[self.page]) == 1:
+            self.screen.delete('all')
+            self.screen.create_image(0, 0, image=self.frame[self.page][0], anchor='nw')
+            self.screen.configure(scrollregion=self.screen.bbox('all'))
+        else:
+            self.delay[self.page] = image.info['duration']
+            self.frame_advance()
+
+    def frame_advance(self):
+        self.screen.delete('all')
+        self.screen.create_image(0, 0, image=self.frame[self.page][self.pn], anchor='nw')
+        self.screen.configure(scrollregion=self.screen.bbox('all'))
+        self.pn = (self.pn + 1) % len(self.frame[self.page])
+        self.sch = self.after(int(self.delay[self.page] / self.base.multiplier[self.base.speed]), self.frame_advance)
+
     def scroll(self, event):
         """
         handle mouse scrolling
