@@ -250,7 +250,6 @@ class SauceFinder(tk.Frame):
             return
         
         r = response.json()
-        print(r)
         data['gallery'] = r['media_id']
         data['title'] = r['title']['english']
         data['subtitle'] = r['title']['japanese']
